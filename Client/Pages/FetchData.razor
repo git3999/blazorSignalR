@@ -1,0 +1,82 @@
+@page "/fetchdata"
+@using blazorSignalR.Shared
+@using Microsoft.AspNetCore.SignalR.Client
+@using blazorSignalR.Client.components
+@inject HttpClient Http
+@inject NavigationManager navigationManager
+
+@implements IDisposable
+
+<h1>Stockquotes</h1>
+
+@if (quotes == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Symbol</th>
+                <th style="text-align: right;">Price</th>
+                <th style="text-align: center;">Change</th>
+                <th style="text-align: right;">Volume</th>
+                <th>Time</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var q in quotes)
+            {
+                <StockQuoteDisplay Quote="q"></StockQuoteDisplay>
+            }
+        </tbody>
+    </table>
+}
+
+<div class="content px-4" style="background-color: gainsboro;">
+    Info=@infotext
+</div>
+
+@code {
+    private List<StockQuote> quotes = new List<StockQuote>();
+    private string infotext;
+    private HubConnection hubConn;
+
+    protected override async Task OnInitializedAsync()
+    {
+        this.hubConn = new HubConnectionBuilder()
+            .WithUrl(navigationManager.ToAbsoluteUri("/hubs/quotes"))
+            .Build();
+
+        this.hubConn.On<string>("QuoteHubMessage", (msg) =>
+        {
+            this.infotext = $"{msg}";
+            StateHasChanged();
+        });
+
+        this.hubConn.On<StockQuote>("SendQuoteInfo", (quote) =>
+        {
+            int i = this.quotes.FindIndex(q => q.Symbol == quote.Symbol);
+
+            if (i < 0)
+            {
+                this.quotes.Add(quote);
+                StateHasChanged();
+            }
+            else
+            {
+                this.quotes[i].UpdateQuoteData(quote);
+
+                //StateHasChanged();
+            }
+        });
+
+        await this.hubConn.StartAsync();
+    }
+
+    public void Dispose()
+    {
+        this.hubConn?.StopAsync();
+    }
+}

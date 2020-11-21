@@ -1,0 +1,22 @@
+﻿<tr>
+    <td>@Quote.Symbol</td>
+    <td style="text-align: right; color: white; background-color: @(Quote.PriceRise ? "green" : "red" );">@Quote.Price.ToString("C2")</td>
+    <td style="text-align: center; color: @(Quote.PriceRise ? "green" : "red" );">@Quote.Percent.ToString("F1")%</td>
+    <td style="text-align: right;">@Quote.Volume</td>
+    <td>@Quote.Time.ToString("HH:mm:ss.fff")</td>
+</tr>
+
+@code {
+    [Parameter]
+    public blazorSignalR.Shared.StockQuote Quote { get; set; }
+
+    protected override Task OnInitializedAsync()
+    {
+        Quote.QuoteUpdated += (_,__) =>
+        {
+            StateHasChanged();
+        };
+
+        return base.OnInitializedAsync();
+    }
+}
